@@ -1,75 +1,107 @@
-// Datos de Prueba
- 
-const videojuegos = [
+//local data de videojuegos si la API no funciona
+const videojuegosLocales = [
   {
-    id: 1,
-    nombre :"Elden Ring",
-    genero: "RPG de acción",
-    plataforma: "PC, PS4, PS5, Xbox One, Xbox Series X/S",
-    rating: 4.8,
-    imagen: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r76.png"
+    title :"Elden Ring",
+    thumb: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r76.png",
+    normalPrice: "-",
+    salePrice: "-",
+    savings:null,
   },
   {
-    id: 2,
-    nombre:"God of War",
-    genero: " Acción · Aventura · PS4 / PS5",
-    plataforma: "PC, PS4, PS5, Xbox One, Xbox Series X/S",
-    rating: 4.9,
-    imagen: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6a5r.png"
+    title :"need for speed",
+    thumb: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6a5r.png",
+    normalPrice: "-",
+    salePrice: "-",
+    savings:null,
   },
-    {
-  id: 3,
-    nombre:"zelda",
-    genero: " aventura . Mundo Abierto .Switch",
-    plataforma: "PC, PS4, PS5, Xbox One, Xbox Series X/S",
-    rating: 4.7,
-    imagen: "https://images.igdb.com/igdb/image/upload/t_cover_big/co48qj.png"
-    },
-    {
-    id: 4,
-    nombre:"fornite",
-    genero: " Batlle Royale . Multiplataforma ",
-    rating: 4.3,
-    imagen: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5s5d.png"
-    },
 ];
- 
-const grid = document.querySelector('#grid-videojuegos');
- 
-//Funcion para pintar los cards
-function renderVideojuegos(lista) {
+
+//Selecciones del DOM - DENTRO DE DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  const grid = document.querySelector('#grid-videojuegos');
+  const estadoCarga = document.querySelector('#estado-carga');
+  const estadoError = document.querySelector('#estado-error');
+  const inputBusqueda = document.querySelector(
+    "input[placeholder='Buscar videojuegos...']"
+  );
+
+  //Funcion para pintar los cards
+  function renderVideojuegos(lista) {
     grid.innerHTML = '';//limpiar el grid antes de renderizar
     lista.forEach((juego) => {
-        // Creamos el html de cada card
-        const card = document.createElement('article');
-        card.className = 'bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100 flex flex-col';
- 
-        //Insertamos el contenido de las card
-        card.innerHTML = `
+      //ajusta los nombres de las propiedades
+      const titulo = juego.title || juego.externall || "juego";
+      const thumb = juego.thumb || juego.gameID || juego.thumbnail || "";
+      //precio y ahorro con fallbacks
+      const normal = juego.normalPrice ?? "-";
+      const oferta = juego.salePrice ?? juego.cheapest ?? "-";
+      //ahorro redondeado si existe o null si no existe
+      const ahorro = juego.savings ? Math.round(juego.savings) : null;
+
+      // Creamos el html de cada card
+      const card = document.createElement('article');
+      card.className = 'bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100 flex flex-col';
+
+      //Insertamos el contenido de las card
+      card.innerHTML = `
         <img
-            src="${juego.imagen}"
-            alt="${juego.nombre}"
+            src="${thumb}"
+            alt="${titulo}"
             class="w-full h-48 object-cover">
         <div class="p-4 flex flex-col gap-2 flex-1">
-            <h3 class="text-lg font-semibold text-slate-900">${juego.nombre}</h3>
-            <p class="text-sm text-slate-600 flex-1">${juego.genero}</p>
-            <div class="flex items-center gap-1 mt-auto">
-                <span class="text-yellow-500">★</span>
-                <p class="text-sm font-semibold text-slate-700">${juego.rating}</p>
-            </div>
+            <h3 class="text-lg font-semibold text-slate-900">${titulo}</h3>
+            <p class="text-xs text-slate-600">
+            Precio : ${
+              normal && normal !== "-" ? `<s>$${normal}</s>` : "-"
+            }
+            ${
+              oferta && oferta !== "-"
+               ? `<span class="font-semibold text-slate-900">$${oferta}</span>`
+                : ""
+            }
+            ${ahorro ? ` . Ahorro ${ahorro}%` : ""}
+            </p>
             <button class="mt-4 w-full px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-800">
                 Ver detalle
             </button>
         </div>
-        `;
-        // Agregamos la card al grid
-        grid.appendChild(card);
+      `;
+      // Agregamos la card al grid
+      grid.appendChild(card);
     });
- 
-}
-    renderVideojuegos(videojuegos);
- 
- 
+  }
+
+  //ASYNC significa que la funcion maneja operaciones asincronas
+  async function cargarVideojuegosInicial() {
+    estadoCarga.classList.remove('hidden');
+    estadoError.classList.add('hidden');
+
+    try {
+      const url = "https://www.cheapshark.com/api/1.0/deals?storeID=1&pageSize=20";
+      const resp = await fetch(url); //espera la respuesta de la API
+      if (!resp.ok) {
+        throw new Error("Error en la respuesta de la API");
+      }
+      const data = await resp.json(); //espera la conversion a JSON
+      //Esto los guarda en la cache
+      window._juegosCache = data;
+      renderVideojuegos(data);
+    } catch (e) {
+      console.error("Error al cargar CheapShark", e);
+      estadoError.classList.remove("hidden");
+      renderVideojuegos(videojuegosLocales);
+    } finally {
+      estadoCarga.classList.add("hidden");
+    }
+  }
+
+  cargarVideojuegosInicial();
+});
+
+
+
+
+
 
 
 
